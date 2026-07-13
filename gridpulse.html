@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GridPulse // Microgrid Energy Orchestrator</title>
+    <!-- Modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Chart.js for smooth data graphics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+:root {
+    --bg-darker: #080C14;
+    --bg-dark: #0F1626;
+    --bg-card: rgba(20, 30, 55, 0.5);
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(255, 255, 255, 0.15);
+    
+    /* Neon Accent Colors */
+    --color-solar: #FFB300;
+    --color-wind: #00ACC1;
+    --color-battery: #43A047;
+    --color-grid: #1E88E5;
+    --color-crit: #E53935;
+    --color-noncrit: #8E24AA;
+    
+    --color-text-main: #E2E8F0;
+    --color-text-muted: #94A3B8;
+    --color-success: #10B981;
+    --color-danger: #EF4444;
+    
+    --glow-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+    
+    --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-darker);
+    color: var(--color-text-main);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    overflow-x: hidden;
+    background-image: 
+        radial-gradient(at 10% 20%, rgba(30, 136, 229, 0.15) 0px, transparent 50%),
+        radial-gradient(at 90% 80%, rgba(142, 36, 170, 0.12) 0px, transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+}
+
+/* APP CONTAINER */
+.app-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-height: 100vh;
+}
+
+/* HEADER STYLE */
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--color-grid), var(--color-wind));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 0 15px rgba(30, 136, 229, 0.4);
+}
+
+.logo-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.brand-text h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+    background: linear-gradient(to right, #ffffff, #cbd5e1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.brand-text .subtext {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.header-status {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 30px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: var(--color-success);
+    transition: all 0.3s ease;
+}
+
+.status-badge.islanded {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--color-danger);
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: currentColor;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite alternate;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    100% { transform: scale(1.3); opacity: 1; }
+}
+
+.time-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text-main);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 8px 16px;
+    border-radius: 30px;
+    border: 1px solid var(--border-color);
+}
+
+.day-badge {
+    margin-left: 6px;
+    background: var(--color-grid);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+}
+
+.speed-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    letter-spacing: 0.5px;
+}
+
+.button-group {
+    display: flex;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 10px;
+    padding: 2px;
+    border: 1px solid var(--border-color);
+}
+
+.btn-speed {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-speed:hover {
+    color: var(--color-text-main);
+}
+
+.btn-speed.active {
+    background: linear-gradient(135deg, var(--color-grid), #1565C0);
+    color: white;
+    box-shadow: 0 0 10px rgba(30, 136, 229, 0.3);
+}
+
+/* PANELS GENERAL */
+.panel {
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+    transition: border-color 0.3s ease;
+}
+
+.panel:hover {
+    border-color: var(--border-hover);
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.panel-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: var(--color-text-main);
+}
+
+.badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+
+.live-badge {
+    background: rgba(0, 172, 193, 0.15);
+    color: var(--color-wind);
+    border: 1px solid rgba(0, 172, 193, 0.3);
+}
+
+/* MAIN DASHBOARD LAYOUT */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1.8fr 1fr;
+    gap: 20px;
+}
+
+/* FLOW PANEL & DIAGRAM */
+.flow-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.flow-container {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 12px;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+#flow-diagram {
+    width: 100%;
+    max-height: 410px;
+}
+
+/* SVG Flow Styling */
+.flow-line {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.07);
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: all 0.5s ease;
+}
+
+/* Active Energy Flow Animations */
+.flow-active {
+    stroke-dasharray: 8 8;
+    animation: flow-forward var(--flow-duration, 2s) linear infinite;
+}
+
+.flow-reverse {
+    stroke-dasharray: 8 8;
+    animation: flow-reverse var(--flow-duration, 2s) linear infinite;
+}
+
+@keyframes flow-forward {
+    to {
+        stroke-dashoffset: -32;
+    }
+}
+
+@keyframes flow-reverse {
+    to {
+        stroke-dashoffset: 32;
+    }
+}
+
+/* Energy Specific Lines */
+#path-solar.active-flow {
+    stroke: var(--color-solar);
+    filter: drop-shadow(0 0 2px var(--color-solar));
+}
+#path-wind.active-flow {
+    stroke: var(--color-wind);
+    filter: drop-shadow(0 0 2px var(--color-wind));
+}
+#path-battery.active-flow {
+    stroke: var(--color-battery);
+    filter: drop-shadow(0 0 2px var(--color-battery));
+}
+#path-grid.active-flow {
+    stroke: var(--color-grid);
+    filter: drop-shadow(0 0 2px var(--color-grid));
+}
+#path-crit.active-flow {
+    stroke: var(--color-crit);
+    filter: drop-shadow(0 0 2px var(--color-crit));
+}
+#path-noncrit.active-flow {
+    stroke: var(--color-noncrit);
+    filter: drop-shadow(0 0 2px var(--color-noncrit));
+}
+
+/* SVG Nodes Styling */
+.node-bg {
+    fill-opacity: 0.15;
+    transition: fill-opacity 0.3s ease;
+}
+
+.node-ring {
+    fill: none;
+    stroke-width: 1.5;
+    stroke-opacity: 0.3;
+    transition: stroke-opacity 0.3s ease;
+}
+
+.node-group {
+    cursor: default;
+    transition: transform 0.2s ease-in-out;
+}
+
+.node-group:hover {
+    transform: scale(1.05) translate(var(--hover-dx, 0), var(--hover-dy, 0));
+}
+
+.node-group:hover .node-ring {
+    stroke-opacity: 0.8;
+}
+
+.node-group:hover .node-bg {
+    fill-opacity: 0.3;
+}
+
+/* Set dynamic origins for hover scale center */
+g:nth-of-type(1) { --hover-dx: -3px; --hover-dy: -3px; }
+g:nth-of-type(2) { --hover-dx: -3px; --hover-dy: 3px; }
+g:nth-of-type(3) { --hover-dx: 0px; --hover-dy: 3px; }
+g:nth-of-type(4) { --hover-dx: 0px; --hover-dy: -3px; }
+
+.node-title {
+    fill: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.node-val {
+    fill: var(--color-text-main);
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+/* Bus bar details */
+.bus-bar {
+    fill: #2A3655;
+    stroke: rgba(255, 255, 255, 0.12);
+    stroke-width: 2;
+    filter: drop-shadow(0 0 5px rgba(42, 54, 85, 0.5));
+}
+
+.bus-text {
+    fill: var(--color-text-muted);
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+/* Wind Turbine Blade Rotation Animation */
+.turbine-blades {
+    transform-origin: 30px 30px;
+    animation: rotate var(--wind-speed-rot, 3s) linear infinite;
+}
+
+@keyframes rotate {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* CONTROL COLUMN */
+.control-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* METRICS PANEL */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.stat-card {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    line-height: 1.2;
+}
+
+.sub-stat {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
+
+.text-gen { color: var(--color-solar); }
+.text-load { color: var(--color-crit); }
+.text-suff { color: var(--color-wind); }
+
+/* Battery Meter Custom CSS */
+.battery-meter-container {
+    height: 16px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    margin-top: 4px;
+    margin-bottom: 2px;
+}
+
+.battery-fill-bar {
+    height: 100%;
+    background: linear-gradient(to right, #388E3C, #4CAF50);
+    border-radius: 3px 0 0 3px;
+    transition: width 0.3s ease, background 0.5s ease;
+}
+
+.battery-percentage {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.65rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* Progress bar inside stats */
+.progress-bar-bg {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--color-wind), var(--color-grid));
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+/* INTERACTIVE CONTROLS PANEL */
+.control-items {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.control-row-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.15);
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.toggle-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.control-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+}
+
+.control-description {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+}
+
+.control-row-slider {
+    background: rgba(0, 0, 0, 0.15);
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.slider-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.slider-val {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: var(--color-wind);
+}
+
+/* Custom sliders */
+.input-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+    transition: background 0.3s ease;
+}
+
+.input-slider:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.input-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-grid), var(--color-wind));
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 172, 193, 0.4);
+    transition: transform 0.1s ease;
+}
+
+.input-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+/* iOS Toggle Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.1);
+    transition: .4s;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #E2E8F0;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+input:checked + .slider:before {
+    background-color: var(--color-danger);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    transform: translateX(24px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* BOTTOM SECTION: CHARTS & LOGS */
+.bottom-row {
+    display: grid;
+    grid-template-columns: 1.8fr 1fr;
+    gap: 20px;
+}
+
+.chart-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-container {
+    flex-grow: 1;
+    position: relative;
+    height: 240px;
+    width: 100%;
+}
+
+.subtext {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+/* Orchestrator Logs Panel */
+.log-panel {
+    display: flex;
+    flex-direction: column;
+    height: 320px;
+}
+
+.btn-clear {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-clear:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-text-main);
+    border-color: var(--border-hover);
+}
+
+.log-console {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    flex-grow: 1;
+    padding: 12px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    scroll-behavior: smooth;
+    max-height: 230px;
+}
+
+.log-line {
+    line-height: 1.4;
+    color: var(--color-text-main);
+    opacity: 0.85;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 0.85; transform: translateY(0); }
+}
+
+.log-time {
+    color: var(--color-text-muted);
+    margin-right: 6px;
+    font-weight: 700;
+}
+
+.log-info { color: var(--color-grid); }
+.log-warn { color: var(--color-solar); }
+.log-alert { color: var(--color-danger); }
+.log-success { color: var(--color-success); }
+.log-system { color: var(--color-noncrit); }
+
+/* Custom Scrollbar for Logs and Console */
+.log-console::-webkit-scrollbar {
+    width: 6px;
+}
+
+.log-console::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.log-console::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.log-console::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* RESPONSIVENESS */
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .bottom-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .log-panel {
+        height: 280px;
+    }
+}
+
+@media (max-width: 768px) {
+    .app-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    
+    .header-status {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .speed-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+</style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- TOP NAVIGATION & STATUS BAR -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>GridPulse</h1>
+                    <span class="subtext">Microgrid Energy Orchestrator</span>
+                </div>
+            </div>
+            
+            <div class="header-status">
+                <div class="status-badge" id="grid-status-badge">
+                    <span class="pulse-dot"></span>
+                    <span class="status-text">GRID-CONNECTED</span>
+                </div>
+                
+                <div class="time-display">
+                    <span class="clock-icon">🕒</span>
+                    <span id="sim-time">08:00:00 AM</span>
+                    <span class="day-badge" id="sim-day">Day 1</span>
+                </div>
+            </div>
+
+            <div class="speed-controls">
+                <span class="control-label">SIM SPEED:</span>
+                <div class="button-group">
+                    <button class="btn-speed active" data-speed="1">1x</button>
+                    <button class="btn-speed" data-speed="10">10x</button>
+                    <button class="btn-speed" data-speed="60">60x</button>
+                    <button class="btn-speed" data-speed="300">300x</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT GRID -->
+        <main class="dashboard-grid">
+            
+            <!-- LEFT COLUMN: POWER FLOW & DIAGRAM -->
+            <section class="panel glass flow-panel">
+                <div class="panel-header">
+                    <h2>Live Energy Flow Network</h2>
+                    <span class="badge live-badge">LIVE SCHEMATIC</span>
+                </div>
+                <div class="flow-container">
+                    <!-- SVG Interactive Grid Flow Diagram -->
+                    <svg id="flow-diagram" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet">
+                        <!-- Definitions for gradients and markers -->
+                        <defs>
+                            <linearGradient id="solar-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#FFE082" />
+                                <stop offset="100%" stop-color="#FFB300" />
+                            </linearGradient>
+                            <linearGradient id="wind-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#80DEEA" />
+                                <stop offset="100%" stop-color="#00ACC1" />
+                            </linearGradient>
+                            <linearGradient id="battery-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#A5D6A7" />
+                                <stop offset="100%" stop-color="#43A047" />
+                            </linearGradient>
+                            <linearGradient id="grid-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#90CAF9" />
+                                <stop offset="100%" stop-color="#1E88E5" />
+                            </linearGradient>
+                            <linearGradient id="load-crit-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#EF9A9A" />
+                                <stop offset="100%" stop-color="#E53935" />
+                            </linearGradient>
+                            <linearGradient id="load-noncrit-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#CE93D8" />
+                                <stop offset="100%" stop-color="#8E24AA" />
+                            </linearGradient>
+                            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="4" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                        </defs>
+
+                        <!-- Central Bus Bar / Connection Hub -->
+                        <g class="bus-bar-group">
+                            <rect class="bus-bar" x="385" y="160" width="30" height="130" rx="6" />
+                            <text x="400" y="230" class="bus-text" text-anchor="middle">AC BUS</text>
+                        </g>
+
+                        <!-- Flow Lines (Paths with dynamic dasharray animation) -->
+                        <!-- Solar to Bus -->
+                        <path id="path-solar" class="flow-line" d="M 190 110 L 385 200" />
+                        <!-- Wind to Bus -->
+                        <path id="path-wind" class="flow-line" d="M 190 340 L 385 250" />
+                        <!-- Battery <-> Bus -->
+                        <path id="path-battery" class="flow-line" d="M 400 370 L 400 290" />
+                        <!-- Grid <-> Bus -->
+                        <path id="path-grid" class="flow-line" d="M 400 80 L 400 160" />
+                        <!-- Bus -> Critical Load -->
+                        <path id="path-crit" class="flow-line" d="M 415 200 L 610 120" />
+                        <!-- Bus -> Non-Critical Load -->
+                        <path id="path-noncrit" class="flow-line" d="M 415 250 L 610 330" />
+
+                        <!-- NODES -->
+                        <!-- Solar (PV Array) -->
+                        <g class="node-group" transform="translate(130, 80)">
+                            <circle class="node-bg" cx="30" cy="30" r="38" fill="url(#solar-grad)" />
+                            <circle class="node-ring" cx="30" cy="30" r="42" stroke="#FFB300" />
+                            <!-- Solar Icon (Sun) -->
+                            <path class="node-icon" d="M30 18v3M30 39v3M18 30h3M39 30h3M21.5 21.5l2.1 2.1M36.4 36.4l2.1 2.1M18.8 38.8l2.1-2.1M39.2 20.8l-2.1 2.1" stroke="#fff" stroke-width="2.5" stroke-linecap="round" />
+                            <circle cx="30" cy="30" r="7" fill="none" stroke="#fff" stroke-width="2.5" />
+                            <text x="30" y="-20" class="node-title" text-anchor="middle">Solar Array</text>
+                            <text x="30" y="90" id="val-solar" class="node-val" text-anchor="middle">0.0 kW</text>
+                        </g>
+
+                        <!-- Wind Farm -->
+                        <g class="node-group" transform="translate(130, 310)">
+                            <circle class="node-bg" cx="30" cy="30" r="38" fill="url(#wind-grad)" />
+                            <circle class="node-ring" cx="30" cy="30" r="42" stroke="#00ACC1" />
+                            <!-- Wind Icon (Turbine) -->
+                            <path class="node-icon turbine-blades" d="M30 30L30 12M30 30l15.6 9M30 30l-15.6 9" stroke="#fff" stroke-width="2.5" stroke-linecap="round" />
+                            <circle cx="30" cy="30" r="3" fill="#fff" />
+                            <path d="M28 30l-2 20h4l-2-20" fill="#fff" opacity="0.8"/>
+                            <text x="30" y="-18" class="node-title" text-anchor="middle">Wind Farm</text>
+                            <text x="30" y="90" id="val-wind" class="node-val" text-anchor="middle">0.0 kW</text>
+                        </g>
+
+                        <!-- Battery ESS -->
+                        <g class="node-group" transform="translate(370, 340)">
+                            <circle class="node-bg" cx="30" cy="30" r="38" fill="url(#battery-grad)" />
+                            <circle class="node-ring" cx="30" cy="30" r="42" stroke="#43A047" />
+                            <!-- Battery Icon -->
+                            <rect x="20" y="20" width="20" height="24" rx="3" fill="none" stroke="#fff" stroke-width="2.5" />
+                            <rect x="25" y="15" width="10" height="5" rx="1" fill="#fff" />
+                            <rect id="bat-icon-fill" x="23" y="32" width="14" height="9" fill="#fff" />
+                            <text x="30" y="-18" class="node-title" text-anchor="middle">ESS Storage</text>
+                            <text x="30" y="90" id="val-battery" class="node-val" text-anchor="middle">0.0 kW</text>
+                        </g>
+
+                        <!-- Main Grid -->
+                        <g class="node-group" transform="translate(370, 20)">
+                            <circle class="node-bg" cx="30" cy="30" r="38" fill="url(#grid-grad)" />
+                            <circle class="node-ring" cx="30" cy="30" r="42" stroke="#1E88E5" />
+                            <!-- Transmission Tower Icon -->
+                            <path class="node-icon" d="M20 45l10-33 10 33M15 36h30M18 24h24M30 12v33" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+                            <text x="30" y="90" class="node-title" text-anchor="middle">Utility Grid</text>
+                            <text x="30" y="-18" id="val-grid" class="node-val" text-anchor="middle">0.0 kW</text>
+                        </g>
+
+                        <!-- Critical Load (Hospital/Infrastructure) -->
+                        <g class="node-group" transform="translate(610, 80)">
+                            <circle class="node-bg" cx="30" cy="30" r="38" fill="url(#load-crit-grad)" />
+                            <circle class="node-ring" cx="30" cy="30" r="42" stroke="#E53935" />
+                            <!-- Cross Icon -->
+                            <path class="node-icon" d="M30 18v24M18 30h24" stroke="#fff" stroke-width="6" stroke-linecap="round" />
+                            <text x="30" y="-20" class="node-title" text-anchor="middle">Critical Load</text>
+                            <text x="30" y="90" id="val-crit" class="node-val" text-anchor="middle">0.0 kW</text>
+                        </g>
+
+                        <!-- Non-Critical Load (Residential/Commercial) -->
+                        <g class="node-group" transform="translate(610, 300)">
+                            <circle class="node-bg" cx="30" cy="30" r="38" fill="url(#load-noncrit-grad)" />
+                            <circle class="node-ring" cx="30" cy="30" r="42" stroke="#8E24AA" />
+                            <!-- House Icon -->
+                            <path class="node-icon" d="M18 28l12-10 12 10v14H18V28z" fill="none" stroke="#fff" stroke-width="2.5" />
+                            <path d="M27 42V32h6v10" stroke="#fff" stroke-width="2" fill="none"/>
+                            <text x="30" y="-18" class="node-title" text-anchor="middle">Non-Crit Load</text>
+                            <text x="30" y="90" id="val-noncrit" class="node-val" text-anchor="middle">0.0 kW</text>
+                        </g>
+                    </svg>
+                </div>
+            </section>
+
+            <!-- RIGHT COLUMN: STATS & CONTROLS -->
+            <div class="control-column">
+                
+                <!-- CARD 1: KEY PERFORMANCE METRICS -->
+                <section class="panel glass stats-panel">
+                    <div class="panel-header">
+                        <h2>Key Metrics</h2>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-label">Total Generation</span>
+                            <span class="stat-value text-gen" id="stat-total-gen">0.0 kW</span>
+                            <div class="sub-stat">
+                                <span id="stat-solar-pct">☀️ 0%</span>
+                                <span id="stat-wind-pct">💨 0%</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Total Load Demand</span>
+                            <span class="stat-value text-load" id="stat-total-load">0.0 kW</span>
+                            <div class="sub-stat">
+                                <span id="stat-crit-pct">🚨 0%</span>
+                                <span id="stat-noncrit-pct">🏡 0%</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">ESS Charge (SoC)</span>
+                            <div class="battery-meter-container">
+                                <div class="battery-fill-bar" id="stat-battery-fill" style="width: 50%;"></div>
+                                <span class="stat-value battery-percentage" id="stat-battery-soc">50%</span>
+                            </div>
+                            <div class="sub-stat">
+                                <span id="stat-battery-status">IDLE</span>
+                                <span id="stat-battery-capacity">150 / 300 kWh</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Self-Sufficiency</span>
+                            <span class="stat-value text-suff" id="stat-sufficiency">0.0%</span>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" id="stat-sufficiency-fill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CARD 2: REAL-TIME CONTROLS -->
+                <section class="panel glass interactive-controls">
+                    <div class="panel-header">
+                        <h2>Grid Orchestration Controls</h2>
+                    </div>
+                    <div class="control-items">
+                        <!-- Island Mode Toggle -->
+                        <div class="control-row-toggle">
+                            <div class="toggle-info">
+                                <span class="control-title">Island Mode</span>
+                                <span class="control-description">Disconnect microgrid from utility grid</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="ctrl-island-mode">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        
+                        <!-- Cloud Cover Slider -->
+                        <div class="control-row-slider">
+                            <div class="slider-info">
+                                <span class="control-title">Cloud Cover</span>
+                                <span class="slider-val" id="ctrl-cloud-val">20%</span>
+                            </div>
+                            <input type="range" id="ctrl-cloud" min="0" max="100" value="20" class="input-slider">
+                        </div>
+
+                        <!-- Wind Speed Slider -->
+                        <div class="control-row-slider">
+                            <div class="slider-info">
+                                <span class="control-title">Wind Speed</span>
+                                <span class="slider-val" id="ctrl-wind-val">8.5 m/s</span>
+                            </div>
+                            <input type="range" id="ctrl-wind" min="0" max="25" step="0.5" value="8.5" class="input-slider">
+                        </div>
+
+                        <!-- Load Demand Multiplier Slider -->
+                        <div class="control-row-slider">
+                            <div class="slider-info">
+                                <span class="control-title">Load Demand Factor</span>
+                                <span class="slider-val" id="ctrl-load-val">100%</span>
+                            </div>
+                            <input type="range" id="ctrl-load" min="50" max="200" value="100" class="input-slider">
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- BOTTOM ROW: CHARTS & LOGS -->
+        <footer class="bottom-row">
+            <!-- GRAPH CARD -->
+            <section class="panel glass chart-panel">
+                <div class="panel-header">
+                    <h2>Microgrid Power History</h2>
+                    <span class="subtext">Real-time balancing</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="energy-chart"></canvas>
+                </div>
+            </section>
+
+            <!-- CONSOLE/LOGS CARD -->
+            <section class="panel glass log-panel">
+                <div class="panel-header">
+                    <h2>Orchestrator Activity Logs</h2>
+                    <button class="btn-clear" id="btn-clear-logs">Clear</button>
+                </div>
+                <div class="log-console" id="log-console">
+                    <!-- Log lines inserted by JS -->
+                </div>
+            </section>
+        </footer>
+    </div>
+
+    <script>
+// GridPulse Microgrid Orchestrator Simulation Engine
+document.addEventListener("DOMContentLoaded", () => {
+    
+    // --- SIMULATION CONFIG & STATE ---
+    let simHour = 8.0;      // Start at 8:00 AM
+    let simDay = 1;
+    let simSpeed = 1;       // 1x, 10x, 60x, 300x
+    let lastTickTime = Date.now();
+    
+    // Orchestration Variables
+    let cloudCover = 20;    // 0% - 100%
+    let windSpeed = 8.5;    // m/s
+    let loadMultiplier = 1.0; // 50% - 200%
+    let islandMode = false;
+    
+    // Assets Capacity & Stats
+    const solarCapacity = 75.0; // kW Peak
+    const windCapacity = 50.0;  // kW Peak
+    const essMaxCapacity = 300.0; // kWh
+    let essCharge = 180.0;        // kWh (60% SoC starting)
+    const essMaxChargeRate = 80.0; // kW
+    const essMaxDischargeRate = 100.0; // kW
+    const essRoundTripEff = 0.95; // 95% efficiency
+    
+    // Loads Base Values
+    const baseCritLoad = 18.0; // kW
+    const baseNonCritLoad = 28.0; // kW
+    
+    // Active values computed each tick
+    let solarGen = 0;
+    let windGen = 0;
+    let critLoad = 0;
+    let nonCritLoad = 0;
+    let loadShedNonCrit = false;
+    let loadShedCrit = false;
+    
+    let essRate = 0; // kW (+ charging, - discharging)
+    let gridRate = 0; // kW (+ importing, - exporting)
+    
+    // Chart history arrays (Rolling 30 data points)
+    const maxHistoryPoints = 30;
+    const historyData = {
+        timestamps: [],
+        generation: [],
+        consumption: [],
+        batterySoc: []
+    };
+    
+    // Hourly Load profile curve multipliers (00:00 to 23:00)
+    const loadProfile = [
+        0.42, 0.38, 0.35, 0.35, 0.38, 0.48, 0.65, 0.82, 0.95, 0.88, 0.78, 0.75,
+        0.72, 0.75, 0.78, 0.74, 0.72, 0.80, 0.98, 1.00, 0.92, 0.75, 0.58, 0.48
+    ];
+    
+    // UI elements cache
+    const domSimTime = document.getElementById("sim-time");
+    const domSimDay = document.getElementById("sim-day");
+    const domGridStatusBadge = document.getElementById("grid-status-badge");
+    
+    const domValSolar = document.getElementById("val-solar");
+    const domValWind = document.getElementById("val-wind");
+    const domValBattery = document.getElementById("val-battery");
+    const domValGrid = document.getElementById("val-grid");
+    const domValCrit = document.getElementById("val-crit");
+    const domValNonCrit = document.getElementById("val-noncrit");
+    
+    const domStatTotalGen = document.getElementById("stat-total-gen");
+    const domStatSolarPct = document.getElementById("stat-solar-pct");
+    const domStatWindPct = document.getElementById("stat-wind-pct");
+    const domStatTotalLoad = document.getElementById("stat-total-load");
+    const domStatCritPct = document.getElementById("stat-crit-pct");
+    const domStatNonCritPct = document.getElementById("stat-noncrit-pct");
+    const domStatBatteryFill = document.getElementById("stat-battery-fill");
+    const domStatBatterySoc = document.getElementById("stat-battery-soc");
+    const domStatBatteryStatus = document.getElementById("stat-battery-status");
+    const domStatBatteryCapacity = document.getElementById("stat-battery-capacity");
+    const domStatSufficiency = document.getElementById("stat-sufficiency");
+    const domStatSufficiencyFill = document.getElementById("stat-sufficiency-fill");
+    
+    const domCtrlCloud = document.getElementById("ctrl-cloud");
+    const domCtrlCloudVal = document.getElementById("ctrl-cloud-val");
+    const domCtrlWind = document.getElementById("ctrl-wind");
+    const domCtrlWindVal = document.getElementById("ctrl-wind-val");
+    const domCtrlLoad = document.getElementById("ctrl-load");
+    const domCtrlLoadVal = document.getElementById("ctrl-load-val");
+    const domCtrlIslandMode = document.getElementById("ctrl-island-mode");
+    
+    const domLogConsole = document.getElementById("log-console");
+    const domBtnClearLogs = document.getElementById("btn-clear-logs");
+    
+    // --- LOGGER SYSTEM ---
+    function logEvent(message, type = "info") {
+        const timeStr = formatClock(simHour);
+        const logLine = document.createElement("div");
+        logLine.className = "log-line";
+        
+        let typeClass = "log-info";
+        let icon = "ℹ️";
+        if (type === "warn") { typeClass = "log-warn"; icon = "⚠️"; }
+        if (type === "alert") { typeClass = "log-alert"; icon = "🚨"; }
+        if (type === "success") { typeClass = "log-success"; icon = "✅"; }
+        if (type === "system") { typeClass = "log-system"; icon = "💻"; }
+        
+        logLine.innerHTML = `<span class="log-time">[Day ${simDay} ${timeStr}]</span> <span class="${typeClass}">${icon} ${message}</span>`;
+        domLogConsole.appendChild(logLine);
+        domLogConsole.scrollTop = domLogConsole.scrollHeight;
+        
+        // Keep console limited to 50 lines
+        while (domLogConsole.children.length > 50) {
+            domLogConsole.removeChild(domLogConsole.firstChild);
+        }
+    }
+    
+    // Pre-populate logs with system start info
+    logEvent("GridPulse Orchestration Suite Initialized.", "system");
+    logEvent("Established communication with ESS Battery storage bank.", "success");
+    logEvent("Utility grid sync status: STABLE. Operating at 60.00Hz.", "info");
+    logEvent("Simulation engine started.", "system");
+    
+    // Clear logs button
+    domBtnClearLogs.addEventListener("click", () => {
+        domLogConsole.innerHTML = "";
+        logEvent("Console logs cleared.", "system");
+    });
+    
+    // --- CHART.JS CONFIG ---
+    const ctx = document.getElementById("energy-chart").getContext("2d");
+    
+    // Gradient definitions for chart
+    const genGradient = ctx.createLinearGradient(0, 0, 0, 200);
+    genGradient.addColorStop(0, 'rgba(0, 172, 193, 0.4)');
+    genGradient.addColorStop(1, 'rgba(0, 172, 193, 0.0)');
+    
+    const loadGradient = ctx.createLinearGradient(0, 0, 0, 200);
+    loadGradient.addColorStop(0, 'rgba(229, 57, 53, 0.3)');
+    loadGradient.addColorStop(1, 'rgba(229, 57, 53, 0.0)');
+    
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: historyData.timestamps,
+            datasets: [
+                {
+                    label: 'Total Generation (kW)',
+                    data: historyData.generation,
+                    borderColor: '#00ACC1',
+                    borderWidth: 2.5,
+                    backgroundColor: genGradient,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Load Consumption (kW)',
+                    data: historyData.consumption,
+                    borderColor: '#E53935',
+                    borderWidth: 2.5,
+                    backgroundColor: loadGradient,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Battery Charge (%)',
+                    data: historyData.batterySoc,
+                    borderColor: '#43A047',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    yAxisID: 'ySoc'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        color: '#94A3B8',
+                        font: { family: 'Outfit', size: 11 },
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(15, 22, 38, 0.95)',
+                    titleColor: '#F8FAFC',
+                    bodyColor: '#E2E8F0',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: 1,
+                    titleFont: { family: 'Outfit', weight: 'bold' },
+                    bodyFont: { family: 'Outfit' }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255, 255, 255, 0.03)', drawTicks: false },
+                    ticks: { color: '#64748B', font: { family: 'Outfit', size: 10 } }
+                },
+                y: {
+                    position: 'left',
+                    title: { display: true, text: 'Power (kW)', color: '#94A3B8', font: { family: 'Outfit' } },
+                    grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                    ticks: { color: '#94A3B8', font: { family: 'JetBrains Mono', size: 10 } },
+                    min: 0,
+                    suggestedMax: 100
+                },
+                ySoc: {
+                    position: 'right',
+                    title: { display: true, text: 'SoC (%)', color: '#43A047', font: { family: 'Outfit' } },
+                    grid: { drawOnChartArea: false }, // avoid double grid lines
+                    ticks: { color: '#43A047', font: { family: 'JetBrains Mono', size: 10 } },
+                    min: 0,
+                    max: 100
+                }
+            }
+        }
+    });
+
+    // Helper: Push data to historical graph database
+    let lastChartUpdateSimTime = -1; // track last hour recorded
+    
+    function recordHistoryPoint() {
+        const timeStr = formatClockHour(simHour);
+        
+        // Push values
+        historyData.timestamps.push(timeStr);
+        historyData.generation.push((solarGen + windGen).toFixed(1));
+        historyData.consumption.push((critLoad + nonCritLoad).toFixed(1));
+        historyData.batterySoc.push(((essCharge / essMaxCapacity) * 100).toFixed(0));
+        
+        // Cap records
+        if (historyData.timestamps.length > maxHistoryPoints) {
+            historyData.timestamps.shift();
+            historyData.generation.shift();
+            historyData.consumption.shift();
+            historyData.batterySoc.shift();
+        }
+        
+        chart.update('none'); // Update without full transition for speed
+    }
+    
+    // Seed initial history points so graph is pre-populated
+    for (let i = 29; i >= 0; i--) {
+        let seedHour = (simHour - (i * 0.5) + 24) % 24;
+        let seedDay = simDay - (simHour - (i * 0.5) < 0 ? 1 : 0);
+        let hIdx = Math.floor(seedHour);
+        
+        // Simulated Solar
+        let sGen = 0;
+        if (seedHour >= 6 && seedHour <= 18) {
+            sGen = solarCapacity * Math.sin(Math.PI * (seedHour - 6) / 12) * (1 - cloudCover / 100);
+        }
+        // Simulated Wind
+        let wGen = 0;
+        if (windSpeed >= 3 && windSpeed <= 25) {
+            wGen = windCapacity * Math.pow((windSpeed - 3) / 9, 2);
+            if (windSpeed > 12) wGen = windCapacity;
+        }
+        
+        let cLoad = baseCritLoad * loadMultiplier;
+        let ncLoad = baseNonCritLoad * loadProfile[hIdx] * loadMultiplier;
+        
+        historyData.timestamps.push(formatClockHour(seedHour));
+        historyData.generation.push((sGen + wGen).toFixed(1));
+        historyData.consumption.push((cLoad + ncLoad).toFixed(1));
+        
+        // Simple charge profile simulation
+        let seedSoC = 50 + 15 * Math.sin(Math.PI * (seedHour - 8) / 12);
+        historyData.batterySoc.push(seedSoC.toFixed(0));
+    }
+    chart.update();
+
+    // --- CONTROLS LISTENERS ---
+    domCtrlCloud.addEventListener("input", (e) => {
+        cloudCover = parseInt(e.target.value);
+        domCtrlCloudVal.textContent = `${cloudCover}%`;
+    });
+    
+    domCtrlWind.addEventListener("input", (e) => {
+        windSpeed = parseFloat(e.target.value);
+        domCtrlWindVal.textContent = `${windSpeed.toFixed(1)} m/s`;
+        
+        // Speed up/slow down rotor rotation anim based on wind speed
+        if (windSpeed < 3.0) {
+            document.querySelector(".turbine-blades").style.animationPlayState = "paused";
+        } else {
+            document.querySelector(".turbine-blades").style.animationPlayState = "running";
+            // Rotational speed: windSpeed of 12.0m/s = 1s rotation, 3.0m/s = 4s rotation
+            let duration = Math.max(0.4, 4 - ((windSpeed - 3) / 9) * 3);
+            document.documentElement.style.setProperty('--wind-speed-rot', `${duration.toFixed(2)}s`);
+        }
+    });
+
+    domCtrlLoad.addEventListener("input", (e) => {
+        loadMultiplier = parseInt(e.target.value) / 100;
+        domCtrlLoadVal.textContent = `${e.target.value}%`;
+    });
+
+    domCtrlIslandMode.addEventListener("change", (e) => {
+        islandMode = e.target.checked;
+        if (islandMode) {
+            domGridStatusBadge.className = "status-badge islanded";
+            domGridStatusBadge.querySelector(".status-text").textContent = "ISLANDED MODE";
+            logEvent("Grid breaker OPENED. Microgrid islanded from utility network.", "alert");
+        } else {
+            domGridStatusBadge.className = "status-badge";
+            domGridStatusBadge.querySelector(".status-text").textContent = "GRID-CONNECTED";
+            logEvent("Grid breaker CLOSED. Resynced with utility network.", "success");
+            // restore load shedding if occurred
+            loadShedNonCrit = false;
+            loadShedCrit = false;
+        }
+    });
+
+    // Speed selector buttons
+    const btnSpeeds = document.querySelectorAll(".btn-speed");
+    btnSpeeds.forEach(btn => {
+        btn.addEventListener("click", () => {
+            btnSpeeds.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            simSpeed = parseInt(btn.getAttribute("data-speed"));
+            logEvent(`Simulation speed adjusted to ${simSpeed}x.`, "system");
+        });
+    });
+
+    // --- TIME AND DATA FORMATTERS ---
+    function formatClock(hourDecimal) {
+        const hours = Math.floor(hourDecimal);
+        const minsDecimal = (hourDecimal - hours) * 60;
+        const mins = Math.floor(minsDecimal);
+        const secs = Math.floor((minsDecimal - mins) * 60);
+        
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 === 0 ? 12 : hours % 12;
+        
+        return `${displayHours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')} ${ampm}`;
+    }
+    
+    function formatClockHour(hourDecimal) {
+        const hours = Math.floor(hourDecimal);
+        const mins = Math.floor((hourDecimal - hours) * 60);
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 === 0 ? 12 : hours % 12;
+        return `${displayHours}:${mins.toString().padStart(2, '0')} ${ampm}`;
+    }
+
+    // --- MAIN PHYSICAL SIMULATION TICK ---
+    function updatePhysics() {
+        const now = Date.now();
+        const realElapsedSecs = (now - lastTickTime) / 1000;
+        lastTickTime = now;
+        
+        // Prevent giant leaps if page was tabbed out
+        const elapsedSecs = Math.min(realElapsedSecs, 2.0); 
+        
+        // In this logic: 1 real second = simSpeed simulated minutes.
+        // So simulated elapsed seconds = elapsedSecs * simSpeed * 60
+        const simElapsedSecs = elapsedSecs * simSpeed * 60;
+        const simElapsedHours = simElapsedSecs / 3600;
+        
+        // Advance clock
+        simHour += simElapsedHours;
+        if (simHour >= 24.0) {
+            simHour -= 24.0;
+            simDay += 1;
+            domSimDay.textContent = `Day ${simDay}`;
+            logEvent(`Date rollover: Beginning of Day ${simDay}.`, "system");
+        }
+        
+        domSimTime.textContent = formatClock(simHour);
+        
+        // 1. CALCULATE SOLAR GENERATION
+        // Diurnal curve: Solar peaks at 12:00, starts at 6:00, ends at 18:00
+        if (simHour >= 6.0 && simHour <= 18.0) {
+            const solarAngle = Math.PI * (simHour - 6.0) / 12.0; // 0 to PI
+            const baseSolar = solarCapacity * Math.sin(solarAngle);
+            const cloudLossFactor = 1 - (cloudCover / 100);
+            
+            // Add a bit of natural volatility (random cloud ripples)
+            const ripple = 1.0 + (Math.random() * 0.08 - 0.04);
+            
+            solarGen = baseSolar * cloudLossFactor * ripple;
+            solarGen = Math.max(0, solarGen);
+        } else {
+            solarGen = 0.0;
+        }
+        
+        // 2. CALCULATE WIND GENERATION
+        // Wind turbine power curve logic
+        if (windSpeed < 3.0) {
+            windGen = 0.0;
+        } else if (windSpeed >= 25.0) {
+            // Cutout for high wind speed (protection)
+            windGen = 0.0;
+            if (Math.random() < 0.05) { // periodic warning
+                logEvent("High-wind safety cutout triggered! Wind turbines brakes locked.", "warn");
+            }
+        } else if (windSpeed >= 12.0) {
+            windGen = windCapacity; // Rated power
+        } else {
+            // Quadratic rise between cut-in (3m/s) and rated (12m/s)
+            windGen = windCapacity * Math.pow((windSpeed - 3.0) / 9.0, 2);
+        }
+        // Small random flutter
+        if (windGen > 0) {
+            windGen = windGen * (0.97 + Math.random() * 0.06);
+        }
+        windGen = Math.max(0, Math.min(windGen, windCapacity));
+        
+        // 3. CALCULATE LOAD DEMAND
+        const currentHourIndex = Math.floor(simHour);
+        const nextHourIndex = (currentHourIndex + 1) % 24;
+        const interpolator = simHour - currentHourIndex;
+        
+        // Smoothly interpolate load multipliers hourly
+        const baseFactor = loadProfile[currentHourIndex] * (1 - interpolator) + loadProfile[nextHourIndex] * interpolator;
+        
+        // Constant critical load + time-varying residential load
+        critLoad = baseCritLoad * loadMultiplier;
+        nonCritLoad = baseNonCritLoad * baseFactor * loadMultiplier;
+        
+        // Apply random load micro-spikes
+        const loadNoise = 1.0 + (Math.random() * 0.06 - 0.03);
+        critLoad *= loadNoise;
+        nonCritLoad *= loadNoise;
+        
+        // 4. POWER BALANCE COMPUTATION
+        const totalGeneration = solarGen + windGen;
+        let totalLoad = critLoad + nonCritLoad;
+        
+        // Load Shedding check if islanded
+        if (islandMode && loadShedNonCrit) {
+            totalLoad = critLoad; // drop non-crit consumption
+        }
+        if (islandMode && loadShedCrit) {
+            totalLoad = 0; // complete system blackout
+        }
+        
+        const netBalance = totalGeneration - totalLoad;
+        
+        essRate = 0;
+        gridRate = 0;
+        let batterySoC = (essCharge / essMaxCapacity) * 100;
+        
+        // BATTERY MANAGEMENT SYSTEMS (BMS) SIMULATION
+        if (netBalance > 0) {
+            // 4A. EXCESS POWER GENERATED
+            if (batterySoC < 100.0) {
+                // Charge ESS
+                const possibleChargekW = Math.min(netBalance, essMaxChargeRate);
+                const spaceRemainingkWh = (essMaxCapacity - essCharge) / essRoundTripEff;
+                
+                // Max energy that can be stored in this physics step
+                const maxEnergyToStorekWh = possibleChargekW * simElapsedHours;
+                const actualEnergyStoredkWh = Math.min(maxEnergyToStorekWh, spaceRemainingkWh);
+                
+                if (actualEnergyStoredkWh > 0.001) {
+                    essCharge += actualEnergyStoredkWh * essRoundTripEff;
+                    essRate = actualEnergyStoredkWh / simElapsedHours; // actual charge rate
+                    
+                    if (batterySoC < 99.0 && Math.random() < 0.02) {
+                        logEvent(`BMS: Storing excess generation. Charging battery bank.`, "info");
+                    }
+                }
+            }
+            
+            const remainingExcess = netBalance - essRate;
+            if (remainingExcess > 0.1) {
+                if (!islandMode) {
+                    gridRate = -remainingExcess; // Export excess power to grid
+                    if (Math.random() < 0.01) {
+                        logEvent(`Exporting surplus power (${remainingExcess.toFixed(1)} kW) to main utility grid.`, "success");
+                    }
+                } else {
+                    // Islanded and battery full: curtail solar/wind generation (spill power)
+                    gridRate = 0;
+                    if (Math.random() < 0.02) {
+                        logEvent(`Orchestrator: Microgrid fully charged and islanded. Curtailing renewable outputs.`, "warn");
+                    }
+                }
+            }
+            
+            // clear load shedding tags if battery gets healthy
+            if (batterySoC > 20.0) {
+                if (loadShedNonCrit) {
+                    loadShedNonCrit = false;
+                    logEvent("BMS: ESS charge restored above 20%. Non-critical loads re-energized.", "success");
+                }
+                if (loadShedCrit) {
+                    loadShedCrit = false;
+                    logEvent("System recovered from blackout. Critical loads re-energized.", "success");
+                }
+            }
+            
+        } else {
+            // 4B. POWER DEFICIT OCCURRED
+            const deficitkW = Math.abs(netBalance);
+            
+            if (batterySoC > 5.0) {
+                // Discharge battery
+                const possibleDischargekW = Math.min(deficitkW, essMaxDischargeRate);
+                const energyAvailablekWh = essCharge;
+                
+                const maxEnergyToDrawkWh = possibleDischargekW * simElapsedHours;
+                const actualEnergyDrawnkWh = Math.min(maxEnergyToDrawkWh, energyAvailablekWh);
+                
+                if (actualEnergyDrawnkWh > 0.001) {
+                    essCharge -= actualEnergyDrawnkWh;
+                    essRate = -actualEnergyDrawnkWh / simElapsedHours; // actual discharge rate
+                    
+                    if (batterySoC > 10.0 && Math.random() < 0.02) {
+                        logEvent("BMS: Deficit detected. Discharging ESS battery bank.", "info");
+                    }
+                }
+            }
+            
+            const remainingDeficit = deficitkW - Math.abs(essRate);
+            if (remainingDeficit > 0.1) {
+                if (!islandMode) {
+                    gridRate = remainingDeficit; // Import deficit from utility grid
+                    if (Math.random() < 0.01) {
+                        logEvent(`Importing shortfall power (${remainingDeficit.toFixed(1)} kW) from utility grid.`, "info");
+                    }
+                } else {
+                    // Island mode and battery depleted! Shed loads
+                    gridRate = 0;
+                    if (!loadShedNonCrit) {
+                        loadShedNonCrit = true;
+                        logEvent("CRITICAL ALERT: Islanded ESS depleted! Shedding non-critical loads.", "alert");
+                    } else if (remainingDeficit > critLoad && !loadShedCrit) {
+                        loadShedCrit = true;
+                        logEvent("DISASTER: Insufficient power for critical loads! SYSTEM BLACKOUT.", "alert");
+                    }
+                }
+            }
+        }
+        
+        // Final bounds check on charge
+        essCharge = Math.max(0.0, Math.min(essCharge, essMaxCapacity));
+        batterySoC = (essCharge / essMaxCapacity) * 100;
+        
+        // Log battery warnings
+        if (batterySoC < 15.0 && Math.random() < 0.03 && !loadShedNonCrit) {
+            logEvent(`WARNING: Low battery capacity (${batterySoC.toFixed(0)}%). Consider grid-syncing.`, "warn");
+        }
+        
+        // 5. UPDATE UI VALUES
+        domValSolar.textContent = `${solarGen.toFixed(1)} kW`;
+        domValWind.textContent = `${windGen.toFixed(1)} kW`;
+        
+        // Battery formatting: charging (+), discharging (-)
+        if (essRate > 0.5) {
+            domValBattery.textContent = `+${essRate.toFixed(1)} kW`;
+            domStatBatteryStatus.textContent = "CHARGING";
+            domStatBatteryStatus.style.color = "var(--color-success)";
+        } else if (essRate < -0.5) {
+            domValBattery.textContent = `${essRate.toFixed(1)} kW`;
+            domStatBatteryStatus.textContent = "DISCHARGING";
+            domStatBatteryStatus.style.color = "var(--color-danger)";
+        } else {
+            domValBattery.textContent = "0.0 kW";
+            domStatBatteryStatus.textContent = "IDLE";
+            domStatBatteryStatus.style.color = "var(--color-text-muted)";
+        }
+        
+        // Grid formatting: importing (+), exporting (-)
+        if (gridRate > 0.5) {
+            domValGrid.textContent = `+${gridRate.toFixed(1)} kW`;
+        } else if (gridRate < -0.5) {
+            domValGrid.textContent = `${gridRate.toFixed(1)} kW`;
+        } else {
+            domValGrid.textContent = "0.0 kW";
+        }
+        
+        // Loads formatting
+        domValCrit.textContent = `${(loadShedCrit ? 0 : critLoad).toFixed(1)} kW`;
+        domValNonCrit.textContent = `${(loadShedNonCrit ? 0 : nonCritLoad).toFixed(1)} kW`;
+        
+        // Metrics panel
+        domStatTotalGen.textContent = `${totalGeneration.toFixed(1)} kW`;
+        if (totalGeneration > 0) {
+            domStatSolarPct.textContent = `☀️ ${((solarGen / totalGeneration) * 100).toFixed(0)}%`;
+            domStatWindPct.textContent = `💨 ${((windGen / totalGeneration) * 100).toFixed(0)}%`;
+        } else {
+            domStatSolarPct.textContent = `☀️ 0%`;
+            domStatWindPct.textContent = `💨 0%`;
+        }
+        
+        const finalActiveLoad = (loadShedCrit ? 0 : critLoad) + (loadShedNonCrit ? 0 : nonCritLoad);
+        domStatTotalLoad.textContent = `${finalActiveLoad.toFixed(1)} kW`;
+        if (finalActiveLoad > 0) {
+            domStatCritPct.textContent = `🚨 ${(((loadShedCrit ? 0 : critLoad) / finalActiveLoad) * 100).toFixed(0)}%`;
+            domStatNonCritPct.textContent = `🏡 ${(((loadShedNonCrit ? 0 : nonCritLoad) / finalActiveLoad) * 100).toFixed(0)}%`;
+        } else {
+            domStatCritPct.textContent = `🚨 0%`;
+            domStatNonCritPct.textContent = `🏡 0%`;
+        }
+        
+        // Battery SoC bar
+        domStatBatterySoc.textContent = `${batterySoC.toFixed(0)}%`;
+        domStatBatteryFill.style.width = `${batterySoC}%`;
+        domStatBatteryCapacity.textContent = `${essCharge.toFixed(1)} / ${essMaxCapacity.toFixed(0)} kWh`;
+        
+        // Self-sufficiency index calculation
+        // % of load powered by local renewables + local battery
+        let sufficiency = 0;
+        if (finalActiveLoad > 0.1) {
+            const externalImport = Math.max(0, gridRate);
+            sufficiency = Math.max(0, Math.min(100, ((finalActiveLoad - externalImport) / finalActiveLoad) * 100));
+        }
+        domStatSufficiency.textContent = `${sufficiency.toFixed(1)}%`;
+        domStatSufficiencyFill.style.width = `${sufficiency}%`;
+        
+        // Battery icon fill styling in SVG
+        const batFillElement = document.getElementById("bat-icon-fill");
+        // battery-meter goes from y=20 (fully empty) to y=32 (partially full) ? Wait, in index.html:
+        // rect x=20 y=20 width=20 height=24
+        // fill rect x=23 y=32 width=14 height=9 (which is bottom section)
+        // Let's adjust y and height dynamically based on SoC
+        const fillHeight = 20 * (batterySoC / 100);
+        batFillElement.setAttribute("y", (42 - fillHeight).toString());
+        batFillElement.setAttribute("height", fillHeight.toString());
+        
+        // 6. ANIMATE ENERGY PATH FLOW LINES
+        updateFlowAnimations(solarGen, windGen, essRate, gridRate, critLoad, nonCritLoad);
+        
+        // 7. RECORD HOUR DATA POINT FOR GRAPH
+        const currentSimTimeHour = Math.floor(simHour);
+        if (currentSimTimeHour !== lastChartUpdateSimTime) {
+            lastChartUpdateSimTime = currentSimTimeHour;
+            recordHistoryPoint();
+        }
+    }
+    
+    // --- ANIMATE FLOW VECTORS BASED ON POWER RATES ---
+    function updateFlowAnimations(sol, win, ess, grid, crit, noncrit) {
+        
+        // Solar path
+        const pathSolar = document.getElementById("path-solar");
+        if (sol > 0.5) {
+            pathSolar.classList.add("active-flow", "flow-active");
+            // Set speed: 0.2s for max power (75kW), 2s for min power (1kW)
+            let dur = Math.max(0.2, 2.0 - (sol / solarCapacity) * 1.8);
+            pathSolar.style.setProperty("--flow-duration", `${dur.toFixed(2)}s`);
+        } else {
+            pathSolar.classList.remove("active-flow", "flow-active");
+        }
+        
+        // Wind path
+        const pathWind = document.getElementById("path-wind");
+        if (win > 0.5) {
+            pathWind.classList.add("active-flow", "flow-active");
+            let dur = Math.max(0.2, 2.0 - (win / windCapacity) * 1.8);
+            pathWind.style.setProperty("--flow-duration", `${dur.toFixed(2)}s`);
+        } else {
+            pathWind.classList.remove("active-flow", "flow-active");
+        }
+        
+        // Battery path (bi-directional)
+        const pathBattery = document.getElementById("path-battery");
+        if (ess > 0.5) {
+            // Charging: Flowing from Bus down to Battery (which is reverse directions of the path line draw)
+            pathBattery.className = "flow-line active-flow flow-reverse";
+            let dur = Math.max(0.2, 2.0 - (ess / essMaxChargeRate) * 1.8);
+            pathBattery.style.setProperty("--flow-duration", `${dur.toFixed(2)}s`);
+        } else if (ess < -0.5) {
+            // Discharging: Flowing up from Battery to Bus (forward path line draw)
+            pathBattery.className = "flow-line active-flow flow-active";
+            let dur = Math.max(0.2, 2.0 - (Math.abs(ess) / essMaxDischargeRate) * 1.8);
+            pathBattery.style.setProperty("--flow-duration", `${dur.toFixed(2)}s`);
+        } else {
+            pathBattery.className = "flow-line";
+        }
+        
+        // Grid path (bi-directional)
+        const pathGrid = document.getElementById("path-grid");
+        if (grid > 0.5) {
+            // Importing: Flowing down from Grid to Bus (forward path line draw)
+            pathGrid.className = "flow-line active-flow flow-active";
+            // scale speed to arbitrary max import of 100kW
+            let dur = Math.max(0.2, 2.0 - (grid / 100) * 1.8);
+            pathGrid.style.setProperty("--flow-duration", `${dur.toFixed(2)}s`);
+        } else if (grid < -0.5) {
+            // Exporting: Flowing up from Bus to Grid (reverse path line draw)
+            pathGrid.className = "flow-line active-flow flow-reverse";
+            let dur = Math.max(0.2, 2.0 - (Math.abs(grid) / 100) * 1.8);
+            pathGrid.style.setProperty("--flow-duration", `${dur.toFixed(2)}s`);
+        } else {
+            pathGrid.className = "flow-line";
+        }
+        
+        // Critical Load path
+        const pathCrit = document.getElementById("path-crit");
+        if (crit > 0.5 && !loadShedCrit) {
+            pathCrit.classList.add("active-flow", "flow-active");
+            let dur = Math.max(0.3, 2.0 - (crit / 40) * 1.7);
+            pathCrit.style.setProperty("--flow-duration", `${dur.toFixed(2)}s`);
+        } else {
+            pathCrit.classList.remove("active-flow", "flow-active");
+        }
+        
+        // Non-Critical Load path
+        const pathNonCrit = document.getElementById("path-noncrit");
+        if (noncrit > 0.5 && !loadShedNonCrit) {
+            pathNonCrit.classList.add("active-flow", "flow-active");
+            let dur = Math.max(0.3, 2.0 - (noncrit / 50) * 1.7);
+            pathNonCrit.style.setProperty("--flow-duration", `${dur.toFixed(2)}s`);
+        } else {
+            pathNonCrit.classList.remove("active-flow", "flow-active");
+        }
+    }
+
+    // --- TIMING LOOP ---
+    // Update dashboard elements at 10Hz (every 100ms) for high-fidelity animations
+    setInterval(updatePhysics, 100);
+});
+
+</script>
+</body>
+</html>
